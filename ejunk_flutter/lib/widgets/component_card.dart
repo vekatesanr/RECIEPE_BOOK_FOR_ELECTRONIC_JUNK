@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../models/component_model.dart';
 import 'package:intl/intl.dart';
+import 'dart:convert';
+import '../models/component_model.dart';
 
 class ComponentCard extends StatelessWidget {
   final ComponentModel component;
@@ -47,45 +48,7 @@ class ComponentCard extends StatelessWidget {
                 ClipRRect(
                   borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(16)),
-                  child: Image.network(
-                    component.imageUrl!,
-                    height: 160,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (ctx, err, _) => Container(
-                      height: 60,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF0f172a),
-                        borderRadius:
-                            BorderRadius.vertical(top: Radius.circular(16)),
-                      ),
-                      child: const Center(
-                        child: Icon(Icons.broken_image_rounded,
-                            color: Color(0xFF334155), size: 30),
-                      ),
-                    ),
-                    loadingBuilder: (ctx, child, progress) {
-                      if (progress == null) return child;
-                      return Container(
-                        height: 160,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF0f172a),
-                          borderRadius:
-                              BorderRadius.vertical(top: Radius.circular(16)),
-                        ),
-                        child: Center(
-                          child: CircularProgressIndicator(
-                            value: progress.expectedTotalBytes != null
-                                ? progress.cumulativeBytesLoaded /
-                                    progress.expectedTotalBytes!
-                                : null,
-                            color: const Color(0xFF10b981),
-                            strokeWidth: 2,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                  child: _buildImage(component.imageUrl!),
                 ),
 
               // Content
@@ -197,6 +160,59 @@ class ComponentCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildImage(String url) {
+    if (url.startsWith('data:image')) {
+      final base64String = url.split(',').last;
+      return Image.memory(
+        base64Decode(base64String),
+        height: 160,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        errorBuilder: (ctx, err, _) => _errorContainer(),
+      );
+    } else {
+      return Image.network(
+        url,
+        height: 160,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        errorBuilder: (ctx, err, _) => _errorContainer(),
+        loadingBuilder: (ctx, child, progress) {
+          if (progress == null) return child;
+          return Container(
+            height: 160,
+            decoration: const BoxDecoration(
+              color: Color(0xFF0f172a),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+            ),
+            child: Center(
+              child: CircularProgressIndicator(
+                value: progress.expectedTotalBytes != null
+                    ? progress.cumulativeBytesLoaded / progress.expectedTotalBytes!
+                    : null,
+                color: const Color(0xFF10b981),
+                strokeWidth: 2,
+              ),
+            ),
+          );
+        },
+      );
+    }
+  }
+
+  Widget _errorContainer() {
+    return Container(
+      height: 60,
+      decoration: const BoxDecoration(
+        color: Color(0xFF0f172a),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      child: const Center(
+        child: Icon(Icons.broken_image_rounded, color: Color(0xFF334155), size: 30),
       ),
     );
   }

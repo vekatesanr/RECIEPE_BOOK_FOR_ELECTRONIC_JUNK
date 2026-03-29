@@ -1,9 +1,12 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../services/firebase_service.dart';
+import '../services/yolo_service.dart';
 import '../models/component_model.dart';
 import '../widgets/sidebar_drawer.dart';
+import '../widgets/smart_scanner.dart';
 
 class AnalysisScreen extends StatefulWidget {
   const AnalysisScreen({super.key});
@@ -28,23 +31,48 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   bool _mismatch = false;
 
   @override
+  void initState() {
+    super.initState();
+    YoloService().initialize();
+  }
+
+  @override
   void dispose() {
     _descController.dispose();
     _originController.dispose();
     _projectController.dispose();
     _timeController.dispose();
+    // YoloService().dispose(); // Usually keep instance alive for reuse
     super.dispose();
   }
 
   Future<void> _pickImage(ImageSource source) async {
     try {
-      final XFile? xFile = await _picker.pickImage(
-        source: source,
-        imageQuality: 85,
-        maxWidth: 1200,
-      );
-      if (xFile != null) {
-        setState(() => _selectedImage = File(xFile.path));
+      if (source == ImageSource.camera) {
+        // Use Smart Scanner for camera
+        final File? capturedImage = await Navigator.push<File>(
+          context,
+          MaterialPageRoute(
+            builder: (context) => SmartScanner(
+              onCapture: (image, label) {},
+            ),
+            fullscreenDialog: true,
+          ),
+        );
+        if (capturedImage != null) {
+          setState(() => _selectedImage = capturedImage);
+        }
+      } else {
+        // Use image picker for gallery
+        final XFile? xFile = await _picker.pickImage(
+          source: source,
+          imageQuality: 30, // Extremely compressed for Base64 limits
+          maxWidth: 640,
+          maxHeight: 640,
+        );
+        if (xFile != null) {
+          setState(() => _selectedImage = File(xFile.path));
+        }
       }
     } catch (e) {
       _showSnack('Could not pick image: $e', isError: true);
@@ -85,7 +113,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                 Expanded(
                   child: _ImageSourceButton(
                     icon: Icons.camera_alt_rounded,
-                    label: 'Camera',
+                    label: 'Smart Scanner',
                     onTap: () {
                       Navigator.pop(ctx);
                       _pickImage(ImageSource.camera);
@@ -126,18 +154,19 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     });
 
     try {
-      // Step 1: Upload image
-      final String imageUrl =
-          await _service.uploadComponentImage(_selectedImage!);
+      // Step 1: Base64 Compression Conversion
+      final bytes = await _selectedImage!.readAsBytes();
+      final String base64Image = "data:image/jpeg;base64,${base64Encode(bytes)}";
 
-      // Step 2: Mock AI analysis (YOLOv8 placeholder)
-      await Future.delayed(const Duration(seconds: 2));
-      const String mockAiLabel = 'ceramic capacitor';
+      // Step 2: YOLOv8 AI Analysis natively
+      final String aiPredictedLabel = await YoloService().analyzeImage(_selectedImage!);
+      
       final String userDesc = _descController.text.trim().toLowerCase();
-      final bool hasMismatch = !userDesc.contains(mockAiLabel.split(' ').last);
+      // Simple mismatch logic: checks if AI returned a word that is not in the description
+      final bool hasMismatch = !userDesc.contains(aiPredictedLabel.toLowerCase());
 
       setState(() {
-        _aiResult = mockAiLabel;
+        _aiResult = aiPredictedLabel;
         _mismatch = hasMismatch;
       });
 
@@ -148,9 +177,9 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
         originSource: _originController.text.trim(),
         intendedProject: _projectController.text.trim(),
         dismantleTimeEstimate: _timeController.text.trim(),
-        aiLabel: mockAiLabel,
+        aiLabel: aiPredictedLabel,
         userDescription: _descController.text.trim(),
-        imageUrl: imageUrl,
+        imageUrl: base64Image,
         mismatchStatus: hasMismatch,
         timestamp: DateTime.now(),
         isDismantled: false,
@@ -171,7 +200,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    '⚠️ AI says "$mockAiLabel" but you described "${_descController.text.trim()}"',
+                    '⚠️ AI says "$aiPredictedLabel" but you described "${_descController.text.trim()}"',
                     style: const TextStyle(fontSize: 13),
                   ),
                 ),
@@ -211,10 +240,10 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _ResultRow('Doc ID', docId.substring(0, 8) + '...'),
-              _ResultRow('AI Label', mockAiLabel),
+              _ResultRow('YOLO Label', aiPredictedLabel),
               _ResultRow('Status',
                   hasMismatch ? '⚠️ Mismatch' : '✅ Match'),
-              _ResultRow('Saved to', 'Firestore (pending review)'),
+              _ResultRow('Saved to', 'Firestore (Pending Review)'),
             ],
           ),
           actions: [

@@ -1,0 +1,9 @@
+capacitor
+resistor
+ic
+motherboard
+battery
+wire
+lcd screen
+laptop
+cell phone

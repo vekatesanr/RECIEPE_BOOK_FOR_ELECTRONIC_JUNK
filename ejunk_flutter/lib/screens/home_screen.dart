@@ -65,7 +65,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (confirmed == true) {
       try {
-        await _service.deleteComponent(comp.id, comp.imageUrl);
+        await _service.deleteComponent(comp.id);
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(

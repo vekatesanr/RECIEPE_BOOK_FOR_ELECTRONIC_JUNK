@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import '../models/component_model.dart';
 import '../models/admin_model.dart';
 
@@ -10,22 +9,9 @@ class FirebaseService {
   FirebaseService._internal();
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
 
-  // ─── Upload Image ────────────────────────────────────────────────────────
-  Future<String> uploadComponentImage(File imageFile) async {
-    try {
-      final String fileName =
-          'verified_junk/${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final Reference ref = _storage.ref().child(fileName);
-      final UploadTask uploadTask = ref.putFile(imageFile);
-      final TaskSnapshot snapshot = await uploadTask;
-      final String downloadUrl = await snapshot.ref.getDownloadURL();
-      return downloadUrl;
-    } catch (e) {
-      throw Exception('Image upload failed: $e');
-    }
-  }
+  // ─── Save Component ──────────────────────────────────────────────────────
+
 
   // ─── Save Component ──────────────────────────────────────────────────────
   Future<String> saveComponent(ComponentModel component) async {
@@ -41,17 +27,9 @@ class FirebaseService {
   }
 
   // ─── Delete Component ────────────────────────────────────────────────────
-  Future<void> deleteComponent(String docId, String? imageUrl) async {
+  Future<void> deleteComponent(String docId) async {
     try {
       await _firestore.collection('components').doc(docId).delete();
-      if (imageUrl != null && imageUrl.isNotEmpty) {
-        try {
-          final Reference imageRef = _storage.refFromURL(imageUrl);
-          await imageRef.delete();
-        } catch (_) {
-          // Image may already be deleted — ignore
-        }
-      }
     } catch (e) {
       throw Exception('Delete component failed: $e');
     }

@@ -26,7 +26,7 @@ android {
         applicationId = "com.example.ejunk_flutter"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion  // Firebase requires API 21+
+        minSdk = 24  // YOLOv8 flutter_vision requires API 24+
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
