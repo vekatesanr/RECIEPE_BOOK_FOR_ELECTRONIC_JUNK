@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "147862152856",
+    "project_id": "electronic-junk",
+    "storage_bucket": "electronic-junk.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:147862152856:android:85121f7eb30158d88252ed",
+        "android_client_info": {
+          "package_name": "com.example.ejunk_flutter"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "147862152856-of18p83q1ehsm0cogll6c82kgec5q2vr.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDwpf3ZGw_r7rEX5wxrFKvofM2grj9K2AQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "147862152856-of18p83q1ehsm0cogll6c82kgec5q2vr.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

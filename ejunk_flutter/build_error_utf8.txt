@@ -1,0 +1,92 @@
+﻿Running Gradle task 'assembleDebug'...                          
+C:\flutter\bin\flutter.bat
+ : 
+At line:1 char:1
++ C:\flutter\bin\flutter.b
+at build apk --debug > 
+build_error.txt 2>&1
++ ~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~
+    + CategoryInfo        
+      : NotSpecified: (:  
+  String) [], RemoteExc   
+ eption
+    + FullyQualifiedError 
+   Id : NativeCommandErr  
+  or
+ 
+FAILURE: Build failed 
+with an exception.
+
+* What went wrong:
+Execution failed for task 
+':app:cleanMergeDebugAsset
+s'.
+> java.io.IOException: 
+Unable to delete 
+directory 'C:\Users\VENKAT
+ESAN\OneDrive\Desktop\junk
+s\ejunk_flutter\build\app\
+intermediates\assets\debug
+\mergeDebugAssets'
+    Failed to delete some 
+children. This might 
+happen because a process 
+has files open or has its 
+working directory set in 
+the target directory.
+    - C:\Users\VENKATESAN\
+OneDrive\Desktop\junks\eju
+nk_flutter\build\app\inter
+mediates\assets\debug\merg
+eDebugAssets\flutter_asset
+s\fonts
+    - C:\Users\VENKATESAN\
+OneDrive\Desktop\junks\eju
+nk_flutter\build\app\inter
+mediates\assets\debug\merg
+eDebugAssets\flutter_asset
+s\packages\cupertino_icons
+\assets
+    - C:\Users\VENKATESAN\
+OneDrive\Desktop\junks\eju
+nk_flutter\build\app\inter
+mediates\assets\debug\merg
+eDebugAssets\flutter_asset
+s\packages\cupertino_icons
+    - C:\Users\VENKATESAN\
+OneDrive\Desktop\junks\eju
+nk_flutter\build\app\inter
+mediates\assets\debug\merg
+eDebugAssets\flutter_asset
+s\packages
+    - C:\Users\VENKATESAN\
+OneDrive\Desktop\junks\eju
+nk_flutter\build\app\inter
+mediates\assets\debug\merg
+eDebugAssets\flutter_asset
+s\shaders
+    - C:\Users\VENKATESAN\
+OneDrive\Desktop\junks\eju
+nk_flutter\build\app\inter
+mediates\assets\debug\merg
+eDebugAssets\flutter_asset
+s
+
+* Try:
+> Run with --stacktrace 
+option to get the stack 
+trace.
+> Run with --info or 
+--debug option to get 
+more log output.
+> Run with --scan to get 
+full insights.
+> Get more help at 
+https://help.gradle.org.
+
+BUILD FAILED in 7s
+Running Gradle task 'assembleDebug'...                              7.6s
+Gradle task assembleDebug 
+failed with exit code 1
