@@ -101,6 +101,10 @@ class _DismantleScreenState extends State<DismantleScreen> {
   ];
 
   final Set<int> _expanded = {};
+  
+  // Interactive Checklist and Search State
+  final Map<int, Set<int>> _completedSteps = {};
+  String _searchQuery = '';
 
   @override
   Widget build(BuildContext context) {
@@ -110,6 +114,27 @@ class _DismantleScreenState extends State<DismantleScreen> {
       drawer: const SidebarDrawer(currentRoute: '/dismantle'),
       body: Column(
         children: [
+          // Search Bar
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: TextField(
+              onChanged: (val) => setState(() => _searchQuery = val),
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                hintText: 'Search dismantle guides...',
+                prefixIcon:
+                    const Icon(Icons.search_rounded, color: Color(0xFF10b981)),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                fillColor: const Color(0xFF1e293b),
+                filled: true,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+          ),
           // Header banner
           Container(
             margin: const EdgeInsets.all(16),
@@ -157,11 +182,19 @@ class _DismantleScreenState extends State<DismantleScreen> {
           // Guides list
           Expanded(
             child: ListView.builder(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
               itemCount: _guides.length,
               itemBuilder: (context, index) {
                 final guide = _guides[index];
+                
+                // Search filter
+                if (_searchQuery.isNotEmpty &&
+                    !guide.componentName
+                        .toLowerCase()
+                        .contains(_searchQuery.toLowerCase())) {
+                  return const SizedBox.shrink();
+                }
+
                 final isExpanded = _expanded.contains(index);
 
                 return Container(
@@ -326,56 +359,85 @@ class _DismantleScreenState extends State<DismantleScreen> {
                                 ),
                               ),
                               const SizedBox(height: 8),
-                              ...guide.steps
-                                  .asMap()
-                                  .entries
-                                  .map((entry) => Padding(
-                                        padding: const EdgeInsets.only(
-                                            bottom: 10),
-                                        child: Row(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Container(
-                                              width: 26,
-                                              height: 26,
-                                              decoration: BoxDecoration(
-                                                color: const Color(0xFF10b981)
-                                                    .withOpacity(0.15),
-                                                shape: BoxShape.circle,
-                                                border: Border.all(
-                                                  color: const Color(
-                                                      0xFF10b981),
-                                                  width: 1,
-                                                ),
-                                              ),
-                                              child: Center(
-                                                child: Text(
-                                                  '${entry.key + 1}',
-                                                  style: const TextStyle(
-                                                    color:
-                                                        Color(0xFF10b981),
-                                                    fontSize: 11,
-                                                    fontWeight:
-                                                        FontWeight.bold,
+                              ...guide.steps.asMap().entries.map((entry) {
+                                final stepIndex = entry.key;
+                                final isStepDone =
+                                    _completedSteps[index]?.contains(stepIndex) ??
+                                        false;
+
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 12),
+                                  child: InkWell(
+                                    onTap: () {
+                                      setState(() {
+                                        _completedSteps.putIfAbsent(
+                                            index, () => <int>{});
+                                        if (isStepDone) {
+                                          _completedSteps[index]!
+                                              .remove(stepIndex);
+                                        } else {
+                                          _completedSteps[index]!.add(stepIndex);
+                                        }
+                                      });
+                                    },
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Container(
+                                          width: 26,
+                                          height: 26,
+                                          decoration: BoxDecoration(
+                                            color: isStepDone
+                                                ? const Color(0xFF10b981)
+                                                : const Color(0xFF10b981)
+                                                    .withOpacity(0.1),
+                                            shape: BoxShape.circle,
+                                            border: Border.all(
+                                              color: const Color(0xFF10b981),
+                                              width: 1.5,
+                                            ),
+                                          ),
+                                          child: Center(
+                                            child: isStepDone
+                                                ? const Icon(Icons.check,
+                                                    size: 14,
+                                                    color: Colors.white)
+                                                : Text(
+                                                    '${stepIndex + 1}',
+                                                    style: const TextStyle(
+                                                      color: Color(0xFF10b981),
+                                                      fontSize: 11,
+                                                      fontWeight: FontWeight.bold,
+                                                    ),
                                                   ),
-                                                ),
-                                              ),
-                                            ),
-                                            const SizedBox(width: 10),
-                                            Expanded(
-                                              child: Text(
-                                                entry.value,
-                                                style: const TextStyle(
-                                                  color: Color(0xFFcbd5e1),
-                                                  fontSize: 13,
-                                                  height: 1.5,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
+                                          ),
                                         ),
-                                      )),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Text(
+                                            entry.value,
+                                            style: TextStyle(
+                                              color: isStepDone
+                                                  ? const Color(0xFF64748b)
+                                                  : const Color(0xFFcbd5e1),
+                                              fontSize: 14,
+                                              height: 1.5,
+                                              decoration: isStepDone
+                                                  ? TextDecoration.lineThrough
+                                                  : null,
+                                              fontStyle: isStepDone
+                                                  ? FontStyle.italic
+                                                  : FontStyle.normal,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }),
                             ],
                           ),
                         ),

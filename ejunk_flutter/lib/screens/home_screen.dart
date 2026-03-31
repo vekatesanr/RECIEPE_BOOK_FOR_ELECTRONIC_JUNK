@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/firebase_service.dart';
-import '../models/component_model.dart';
+import '../models/junk_component.dart';
 import '../widgets/sidebar_drawer.dart';
 import '../widgets/component_card.dart';
 
@@ -15,6 +15,11 @@ class _HomeScreenState extends State<HomeScreen> {
   final FirebaseService _service = FirebaseService();
   String _testResult = '';
   bool _testRunning = false;
+  
+  // Search and Filter State
+  String _searchQuery = '';
+  String _selectedCategory = 'All';
+  final List<String> _categories = ['All', 'Verified', 'Mismatch', 'Dismantled'];
 
   Future<void> _runFirebaseTest() async {
     setState(() {
@@ -36,7 +41,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _deleteComponent(
-      BuildContext context, ComponentModel comp) async {
+      BuildContext context, JunkComponent comp) async {
     final bool? confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -44,7 +49,7 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Text('Delete Component',
             style: TextStyle(color: Colors.white)),
         content: Text(
-          'Delete "${comp.componentName}"? This cannot be undone.',
+          'Delete "${comp.aiLabel}"? This cannot be undone.',
           style: const TextStyle(color: Color(0xFF94a3b8)),
         ),
         actions: [
@@ -102,10 +107,33 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       drawer: const SidebarDrawer(currentRoute: '/home'),
-      body: StreamBuilder<List<ComponentModel>>(
-        stream: _service.getVerifiedComponents(),
+      body: StreamBuilder<List<JunkComponent>>(
+        stream: _service.getJunkComponents(),
         builder: (context, snapshot) {
-          final components = snapshot.data ?? [];
+          final allComponents = snapshot.data ?? [];
+          
+          // 1. Verification Logic: Only show fully analyzed components
+          var components = allComponents.where((c) {
+            return c.aiSuggestedProject != 'AI Analysis Pending...' &&
+                   c.dismantleTime != 'Calculating...';
+          }).toList();
+
+          // Search and Category filtering
+          if (_searchQuery.isNotEmpty) {
+            components = components.where((c) {
+              return c.aiLabel
+                      .toLowerCase()
+                      .contains(_searchQuery.toLowerCase()) ||
+                  c.userDamageDesc.toLowerCase().contains(_searchQuery.toLowerCase());
+            }).toList();
+          }
+
+          if (_selectedCategory != 'All') {
+            components = components.where((c) {
+              if (_selectedCategory == 'Verified') return c.isVerified;
+              return true;
+            }).toList();
+          }
 
           return CustomScrollView(
             slivers: [
@@ -117,7 +145,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Dashboard',
+                        'Integrated Recipe Book',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 26,
@@ -126,17 +154,80 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Verified components ready for salvage',
+                        'Your collection of AI-salvaged electronics',
                         style: TextStyle(color: Colors.grey[500], fontSize: 13),
                       ),
+                      const SizedBox(height: 20),
+
+                      // Search Bar
+                      TextField(
+                        onChanged: (val) => setState(() => _searchQuery = val),
+                        style: const TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          hintText: 'Search your salvaged parts...',
+                          prefixIcon: const Icon(Icons.search_rounded,
+                              color: Color(0xFF10b981)),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 15),
+                          fillColor: const Color(0xFF1e293b),
+                          filled: true,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                      ),
                       const SizedBox(height: 16),
+
+                      // Category Chips
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: _categories.map((cat) {
+                            final isSelected = _selectedCategory == cat;
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: ChoiceChip(
+                                label: Text(cat),
+                                selected: isSelected,
+                                onSelected: (selected) {
+                                  if (selected) {
+                                    setState(() => _selectedCategory = cat);
+                                  }
+                                },
+                                backgroundColor: const Color(0xFF1e293b),
+                                selectedColor:
+                                    const Color(0xFF10b981).withOpacity(0.2),
+                                labelStyle: TextStyle(
+                                  color: isSelected
+                                      ? const Color(0xFF10b981)
+                                      : const Color(0xFF64748b),
+                                  fontSize: 12,
+                                  fontWeight: isSelected
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  side: BorderSide(
+                                    color: isSelected
+                                        ? const Color(0xFF10b981)
+                                        : Colors.transparent,
+                                  ),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
 
                       // Stats row
                       Row(
                         children: [
                           _StatCard(
                             icon: Icons.memory_rounded,
-                            label: 'Total Parts',
+                            label: 'Integrated Parts',
                             value: components.length.toString(),
                             color: const Color(0xFF10b981),
                           ),
@@ -145,19 +236,16 @@ class _HomeScreenState extends State<HomeScreen> {
                             icon: Icons.verified_user_rounded,
                             label: 'Verified',
                             value: components
-                                .where((c) => c.adminVerified)
+                                .where((c) => c.isVerified)
                                 .length
                                 .toString(),
                             color: const Color(0xFF6366f1),
                           ),
                           const SizedBox(width: 12),
                           _StatCard(
-                            icon: Icons.warning_amber_rounded,
-                            label: 'Mismatches',
-                            value: components
-                                .where((c) => c.mismatchStatus)
-                                .length
-                                .toString(),
+                            icon: Icons.auto_awesome,
+                            label: 'Sync Status',
+                            value: 'Live',
                             color: const Color(0xFFf59e0b),
                           ),
                         ],
@@ -211,7 +299,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       const Divider(color: Color(0xFF1e293b)),
                       const SizedBox(height: 8),
                       const Text(
-                        'Verified Components',
+                        'Verified Recipies',
                         style: TextStyle(
                           color: Color(0xFF94a3b8),
                           fontSize: 13,
@@ -244,13 +332,13 @@ class _HomeScreenState extends State<HomeScreen> {
                             size: 64, color: Colors.grey[700]),
                         const SizedBox(height: 16),
                         Text(
-                          'No verified components yet',
+                          'No analyzed components yet',
                           style: TextStyle(
                               color: Colors.grey[600], fontSize: 16),
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Scan a component to get started',
+                          'Scan components to begin the Integrated View.',
                           style: TextStyle(
                               color: Colors.grey[700], fontSize: 13),
                         ),
@@ -265,8 +353,19 @@ class _HomeScreenState extends State<HomeScreen> {
                     delegate: SliverChildBuilderDelegate(
                       (ctx, index) {
                         final comp = components[index];
+                        
+                        // 3. Simple Integration/Compatibility Logic
+                        // In a real-world app, this would use a complex mapping.
+                        // Here, we'll suggest components of different labels.
+                        final compatible = allComponents
+                          .where((other) => other.id != comp.id && other.aiLabel != comp.aiLabel)
+                          .map((other) => other.aiLabel)
+                          .take(2)
+                          .toList();
+
                         return ComponentCard(
                           component: comp,
+                          compatibleParts: compatible,
                           onDelete: () => _deleteComponent(context, comp),
                         );
                       },
@@ -310,9 +409,23 @@ class _StatCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
         decoration: BoxDecoration(
-          color: const Color(0xFF1e293b),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: color.withOpacity(0.2)),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              color.withOpacity(0.15),
+              const Color(0xFF1e293b),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withOpacity(0.3)),
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

@@ -1,3 +1,5 @@
+import 'package:flutter/painting.dart';
+
 /// Detection model to hold AI inference results
 class Detection {
   final String label;

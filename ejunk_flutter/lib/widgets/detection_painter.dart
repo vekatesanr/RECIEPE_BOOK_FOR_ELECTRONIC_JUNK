@@ -65,18 +65,33 @@ class DetectionPainter extends CustomPainter {
   Color _getColorForLabel(String label) {
     final lowerLabel = label.toLowerCase();
 
-    // Check custom color map
+    // Check custom color map first
     if (colorMap.containsKey(lowerLabel)) {
       return colorMap[lowerLabel]!;
     }
 
-    // Fallback to default map
+    // Check default state map
     if (defaultColorMap.containsKey(lowerLabel)) {
       return defaultColorMap[lowerLabel]!;
     }
 
-    // Default to blue for unknown
-    return defaultColorMap['unknown']!;
+    // Dynamic color generation for 61+ classes
+    return _generateLabelColor(lowerLabel);
+  }
+
+  /// Generate a unique, vibrant color for a label using its hash
+  Color _generateLabelColor(String label) {
+    final int hash = label.hashCode;
+    
+    // We use HSL for guaranteed vibrancy and variety
+    // Hue: 360 degrees, varied by hash
+    final double hue = (hash % 360).toDouble();
+    // Saturation: 70-90%
+    final double saturation = 0.7 + (hash % 20) / 100.0;
+    // Lightness: 45-65%
+    final double lightness = 0.45 + (hash % 20) / 100.0;
+    
+    return HSLColor.fromAHSL(1.0, hue, saturation, lightness).toColor();
   }
 
   /// Draw corner markers for better visibility on small boxes
@@ -143,8 +158,11 @@ class DetectionPainter extends CustomPainter {
     Detection detection,
     Color color,
   ) {
+    // Prettify label (e.g., Arduino-Uno -> Arduino Uno)
+    final prettyLabel = detection.label.replaceAll('-', ' ');
+    
     final text =
-        '${detection.label}${showConfidence ? ' ${(detection.confidence * 100).toStringAsFixed(0)}%' : ''}';
+        '$prettyLabel${showConfidence ? ' ${(detection.confidence * 100).toStringAsFixed(0)}%' : ''}';
 
     // Text painter for label
     final textPainter = TextPainter(

@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 class SmartScanner extends StatefulWidget {
   final Function(File, String) onCapture; // Returns captured image and AI detected label
@@ -19,15 +18,20 @@ class SmartScanner extends StatefulWidget {
   _SmartScannerState createState() => _SmartScannerState();
 }
 
-class _SmartScannerState extends State<SmartScanner> {
+class _SmartScannerState extends State<SmartScanner> with SingleTickerProviderStateMixin {
   late CameraController _controller;
   late Future<void> _initializeControllerFuture;
   bool _isCapturing = false;
+  late AnimationController _animationController;
 
   @override
   void initState() {
     super.initState();
     _initializeCamera();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
   }
 
   Future<void> _initializeCamera() async {
@@ -84,6 +88,7 @@ class _SmartScannerState extends State<SmartScanner> {
   @override
   void dispose() {
     _controller.dispose();
+    _animationController.dispose();
     super.dispose();
   }
 
@@ -109,8 +114,15 @@ class _SmartScannerState extends State<SmartScanner> {
                 CameraPreview(_controller),
                 // Custom SVG bounding box overlay
                 Positioned.fill(
-                  child: CustomPaint(
-                    painter: BoundingBoxPainter(),
+                  child: AnimatedBuilder(
+                    animation: _animationController,
+                    builder: (context, child) {
+                      return CustomPaint(
+                        painter: BoundingBoxPainter(
+                          scanProgress: _animationController.value,
+                        ),
+                      );
+                    },
                   ),
                 ),
                 // Bottom capture button
@@ -172,6 +184,10 @@ class _SmartScannerState extends State<SmartScanner> {
 }
 
 class BoundingBoxPainter extends CustomPainter {
+  final double scanProgress;
+
+  BoundingBoxPainter({this.scanProgress = 0.0});
+
   @override
   void paint(Canvas canvas, Size size) {
     final width = size.width;
@@ -226,6 +242,18 @@ class BoundingBoxPainter extends CustomPainter {
         Offset(left + boxWidth - cornerSize, top + boxHeight), cornerPaint);
     canvas.drawLine(Offset(left + boxWidth, top + boxHeight),
         Offset(left + boxWidth, top + boxHeight - cornerSize), cornerPaint);
+
+    // Draw scanning line
+    final scanY = top + (boxHeight * scanProgress);
+    final scanPaint = Paint()
+      ..color = Colors.greenAccent.withOpacity(0.5)
+      ..strokeWidth = 2;
+    
+    canvas.drawLine(
+      Offset(left, scanY),
+      Offset(left + boxWidth, scanY),
+      scanPaint,
+    );
   }
 
   void _drawDashedRect(Canvas canvas, Rect rect, Paint paint) {
